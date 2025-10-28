@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:login/core/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:login/providers/auth_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +23,13 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   // State untuk form
   bool _obscureText = true;
+  bool _isLoggingIn = false;
+  bool _rememberMe = false;
+  // Use secure storage to persist saved username (non-sensitive but already available)
+  final _secureStorage = const FlutterSecureStorage();
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final FocusNode _usernameFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
   Color _usernameBg = kInputBackgroundColor;
@@ -52,6 +60,19 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         _passwordBg = _passwordFocus.hasFocus ? kInputFocusedBackgroundColor : kInputBackgroundColor;
       });
     });
+
+    // Load saved username (if any) and set remember me flag
+    _loadSavedUsername();
+  }
+
+  Future<void> _loadSavedUsername() async {
+    final saved = await _secureStorage.read(key: 'saved_username');
+    if (saved != null && saved.isNotEmpty) {
+      _usernameController.text = saved;
+      setState(() {
+        _rememberMe = true;
+      });
+    }
   }
 
   @override
@@ -62,6 +83,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _pulseController.dispose();
     _usernameFocus.dispose();
     _passwordFocus.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -192,6 +215,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   Widget _buildLoginForm() {
     return Form(
+      key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -199,6 +223,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           const Text("Username or Email", style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8.0), // pb-2
           TextFormField(
+            controller: _usernameController,
             focusNode: _usernameFocus,
             decoration: InputDecoration(
               fillColor: _usernameBg,
@@ -207,6 +232,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               prefixIcon: const Icon(Icons.person_outline),
             ),
             keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter username or email';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 16.0), // space-y-4
 
@@ -214,6 +245,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           const Text("Password", style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8.0),
           TextFormField(
+            controller: _passwordController,
             focusNode: _passwordFocus,
             obscureText: _obscureText,
             decoration: InputDecoration(
@@ -233,6 +265,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 },
               ),
             ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter your password';
+              }
+              return null;
+            },
           ),
           const SizedBox(height: 8.0),
 
@@ -246,18 +284,93 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               child: const Text("Forgot Password?"),
             ),
           ),
+          const SizedBox(height: 8.0),
+
+          // --- Remember Me ---
+          Row(
+            children: [
+              Checkbox(
+                value: _rememberMe,
+                onChanged: (v) async {
+                  setState(() {
+                    _rememberMe = v ?? false;
+                  });
+                  // If user unchecks, remove saved username immediately
+                  if (!_rememberMe) {
+                    await _secureStorage.delete(key: 'saved_username');
+                  }
+                },
+              ),
+              const SizedBox(width: 8.0),
+              const Text('Remember me'),
+            ],
+          ),
           const SizedBox(height: 16.0), // pt-4
 
           // --- Login Button ---
           ElevatedButton(
-            onPressed: () {
-              // Panggil provider untuk login
-              Provider.of<AuthProvider>(context, listen: false).login();
-              
-              // Navigasi ke dashboard dan hapus halaman login dari tumpukan
-              Navigator.pushReplacementNamed(context, '/dashboard');
-            },
-            child: const Text("LOGIN"),
+            onPressed: _isLoggingIn
+                ? null
+                : () async {
+                    // Validasi form terlebih dahulu
+                    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+                    setState(() {
+                      _isLoggingIn = true;
+                    });
+                    try {
+                      // Ambil nilai dari controller
+                      final username = _usernameController.text.trim();
+                      final password = _passwordController.text;
+
+                      // Panggil provider untuk login dan tunggu hasilnya
+                      final success = await Provider.of<AuthProvider>(context, listen: false)
+                          .login(username, password);
+
+                      // Pastikan widget masih ter-mount sebelum menggunakan `context`
+                      if (!mounted) return;
+
+                      if (success) {
+                        // Simpan username jika user memilih remember-me, atau hapus jika tidak
+                        if (_rememberMe) {
+                          await _secureStorage.write(key: 'saved_username', value: username);
+                        } else {
+                          await _secureStorage.delete(key: 'saved_username');
+                        }
+
+                        // Pastikan widget masih ter-mount setelah operasi storage
+                        if (!mounted) return;
+
+                        // Navigasi ke dashboard dan hapus seluruh riwayat rute sehingga
+                        // back / swipe keluar dari aplikasi (tidak kembali ke login)
+                        Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+                      } else {
+                        // Gagal login (mis. storage error) — tampilkan pesan
+                        setState(() {
+                          _isLoggingIn = false;
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Login failed. Please try again.')),
+                        );
+                      }
+                    } catch (e) {
+                      // Kalau terjadi exception tak terduga, tampilkan pesan dan re-enable tombol
+                      if (!mounted) return;
+                      setState(() {
+                        _isLoggingIn = false;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Login error: $e')),
+                      );
+                    }
+                  },
+            child: _isLoggingIn
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white),
+                  )
+                : const Text("LOGIN"),
           ),
         ],
       ),

@@ -1,10 +1,9 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:login/core/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:login/providers/auth_provider.dart';
-import 'package:login/screens/login_screen.dart';
+// removed direct import of LoginScreen in favor of named route navigation
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -62,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildSliverAppBar(BuildContext context) {
     return SliverAppBar(
       pinned: true,
-      backgroundColor: kDarkBackgroundColor.withOpacity(0.95), // Lebih opaque, kurangi blur
+      backgroundColor: kDarkBackgroundColor.withAlpha((0.95 * 255).round()), // Lebih opaque, kurangi blur
       elevation: 0,
       toolbarHeight: 80,
       // HAPUS BackdropFilter - sangat berat untuk GPU
@@ -90,11 +89,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           icon: const Icon(Icons.logout, size: 24),
           onPressed: () {
             Provider.of<AuthProvider>(context, listen: false).logout();
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-              (route) => false,
-            );
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
           },
         ),
         const SizedBox(width: 8),
@@ -156,8 +151,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: kDarkBackgroundColor.withOpacity(0.8),
-        border: Border.all(color: kPrimaryColor.withOpacity(0.3), width: 1.5),
+    color: kDarkBackgroundColor.withAlpha((0.8 * 255).round()),
+    border: Border.all(color: kPrimaryColor.withAlpha((0.3 * 255).round()), width: 1.5),
         borderRadius: BorderRadius.circular(16.0),
       ),
       child: Column(
@@ -166,7 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             "Task Completion",
             style: TextStyle(
-              color: kDarkTextColor.withOpacity(0.8),
+              color: kDarkTextColor.withAlpha((0.8 * 255).round()),
               fontSize: 14,
             ),
           ),
@@ -258,10 +253,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // HAPUS BackdropFilter dan blur - sangat berat
     return Container(
       decoration: BoxDecoration(
-        color: kDarkBackgroundColor.withOpacity(0.98),
-        border: Border(
-          top: BorderSide(color: kPrimaryColor.withOpacity(0.2), width: 1.0),
-        ),
+        color: kDarkBackgroundColor.withAlpha((0.98 * 255).round()),
+          border: Border(
+            top: BorderSide(color: kPrimaryColor.withAlpha((0.2 * 255).round()), width: 1.0),
+          ),
       ),
       child: BottomNavigationBar(
         currentIndex: _currentBottomNavIndex,
@@ -351,7 +346,7 @@ class _QuickActionButton extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: kIconBgColor,
-            border: Border.all(color: kPrimaryColor.withOpacity(0.3)),
+            border: Border.all(color: kPrimaryColor.withAlpha((0.3 * 255).round())),
             borderRadius: BorderRadius.circular(12.0),
           ),
           child: Column(
@@ -395,9 +390,9 @@ class _ActivityListItem extends StatelessWidget {
       padding: const EdgeInsets.all(12.0),
       margin: const EdgeInsets.only(bottom: 8.0),
       decoration: BoxDecoration(
-        color: kDarkBackgroundColor.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: kPrimaryColor.withOpacity(0.1)),
+    color: kDarkBackgroundColor.withAlpha((0.6 * 255).round()),
+    borderRadius: BorderRadius.circular(12.0),
+    border: Border.all(color: kPrimaryColor.withAlpha((0.1 * 255).round())),
       ),
       child: Row(
         children: [
