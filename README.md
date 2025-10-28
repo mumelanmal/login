@@ -1,16 +1,25 @@
 # login
 
-A new Flutter project.
+A simple Flutter project for user login functionality.
 
-## Getting Started
+## 🎯 Deskripsi
+Aplikasi ini dibuat menggunakan Flutter untuk menyediakan fitur autentikasi (login) yang dapat berjalan di berbagai platform (Android, iOS, Web, Desktop).  
+Tujuannya untuk mempelajari pengelolaan state, integrasi back-end (API / Firebase / etc), serta praktik desain UI responsif.
 
-This project is a starting point for a Flutter application.
+## 🧱 Fitur
+- Login dengan email & password  
+- Responsif untuk Android, iOS, Web, Desktop  
+- Komponen UI yang mudah disesuaikan  
+- Struktur proyek yang modular dan bersih  
 
-A few resources to get you started if this is your first Flutter project:
+## 🛠 Instalasi & Penggunaan
+```bash
+# Clone repo
+git clone https://github.com/mumelanmal/login.git
+cd login
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+# Install dependencies
+flutter pub get
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Jalankan proyek (contoh untuk Android)
+flutter run
